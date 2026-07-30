@@ -298,7 +298,7 @@ def aplicar_tipografia_slide(slide_dict: dict, config_user: dict = None) -> dict
 
 def gerar_imagem_para_slide(slide_dict: dict, index_slide: int, output_dir: str, config_user: dict = None, mock_client=None) -> dict:
     load_dotenv()
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = st.secrets["GEMINI_API_KEY"]
     if not api_key:
         return {'status_imagem': "Erro", 'motivo_erro': "GEMINI_API_KEY não encontrada!"}
         
@@ -491,7 +491,7 @@ def run_agent_2(briefing_agent_1: Dict[str, Any], client: Any, model: str, confi
 
 def run_agent_3_image_creator(draft, status, output_dir, config_user=None):
     load_dotenv()
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = st.secrets["GEMINI_API_KEY"]
     if not api_key:
         raise Exception("GEMINI_API_KEY não encontrada no .env!")
         
