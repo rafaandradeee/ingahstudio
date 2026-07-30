@@ -1,18 +1,27 @@
 import os
+import streamlit as st
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-# Carrega as variáveis do arquivo .env
+# Tenta carregar o .env local (caso esteja rodando na sua máquina)
 load_dotenv()
 
-# Conecta com o Supabase
-url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY")
+# Pega do Streamlit Secrets se estiver na nuvem, ou do ambiente local se estiver na sua máquina
+try:
+    url: str = st.secrets["SUPABASE_URL"]
+    key: str = st.secrets["SUPABASE_KEY"]
+except (FileNotFoundError, KeyError, Exception):
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_KEY")
 
 if not url or not key:
-    raise ValueError("⚠️ Chaves do Supabase não encontradas no arquivo .env!")
+    raise ValueError("⚠️ Chaves do Supabase não encontradas! Verifique o .env ou os Secrets do Streamlit.")
 
 supabase: Client = create_client(url, key)
+
+# Log de sucesso (aparece no terminal e na tela)
+print("✅ Conexão com o Supabase estabelecida com sucesso!")
+st.sidebar.success("Banco de dados conectado!")
 
 def get_user_wallet(user_id: str):
     """Busca a carteira de créditos do usuário."""
