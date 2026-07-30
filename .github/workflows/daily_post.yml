@@ -1,0 +1,54 @@
+# Nome do Workflow: Visível na aba "Actions" do seu repositório.
+name: Geração Diária de Post da Equipe de IA
+
+on:
+  # Permite que você rode este workflow manualmente pela interface do GitHub.
+  workflow_dispatch:
+
+  # Agenda a execução automática. O formato é "minuto hora dia mês dia-da-semana".
+  # '0 9 * * *' significa "às 09:00 UTC todos os dias".
+  schedule:
+    - cron: '0 9 * * *'
+
+jobs:
+  # Nome do job (pode ser qualquer um).
+  generate_post:
+    # O tipo de máquina virtual que o job vai rodar. 'ubuntu-latest' é o padrão e mais comum.
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Baixa o código do seu repositório para a máquina virtual.
+      - name: Checkout do Repositório
+        uses: actions/checkout@v4
+
+      # 2. Configura o ambiente Python na versão especificada.
+      - name: Configurar Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # 3. Instala as dependências listadas no requirements.txt.
+      - name: Instalar Dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      # 4. Executa o script principal.
+      #    As variáveis de ambiente são injetadas a partir dos "Secrets" do GitHub.
+      - name: Rodar a Equipe de IA para Gerar Conteúdo
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BLING_API_TOKEN: ${{ secrets.BLING_API_TOKEN }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+        run: python main.py
+
+      # 5. (Opcional) Faz o commit do novo post gerado de volta para o repositório.
+      #    Descomente as linhas abaixo se quiser salvar os arquivos .md no seu Git.
+      # - name: Commit do Post Gerado
+      #   run: |
+      #     git config --global user.name 'GitHub Actions Bot'
+      #     git config --global user.email 'actions-bot@github.com'
+      #     git add posts_gerados/*.md
+      #     # A linha abaixo verifica se houve alguma mudança antes de tentar commitar.
+      #     git diff --quiet --staged || git commit -m "📝 Adiciona post gerado em $(date +'%Y-%m-%d')"
+      #     git push
