@@ -144,7 +144,7 @@ def cancelar_esteira():
 # ROTA 1: TELA DE LOGIN E CADASTRO
 # ==========================================================
 if st.session_state.user is None:
-    st.markdown("<br><br><h1 style='text-align: center;'>🍄 Moara Studio</h1>", unsafe_allow_html=True)
+    st.markdown("<br><br><h1 style='text-align: center;'>🍄 Ingah Studio</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: gray;'>O seu esquadrão de IA para criação de carrosséis.</p>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 1.2, 1])
