@@ -361,7 +361,7 @@ def gerar_imagem_para_slide(slide_dict: dict, index_slide: int, output_dir: str,
         
     caminho_base = os.path.join(output_dir, f"slide_{slide_num}_raw.png")
     
-   formato_desejado = config_user.get('formato_imagem', '1080 x 1080 px (Quadrado)') if config_user else '1080'
+    formato_desejado = config_user.get('formato_imagem', '1080 x 1080 px (Quadrado)') if config_user else '1080'
     proporcao_ia = "3:4" if "1440" in formato_desejado else "1:1"
 
     try:
