@@ -101,7 +101,7 @@ def reaplicar_texto_callback(slide_index):
     
     st.toast("⚡ Arte rediagramada!")
     time.sleep(0.5) 
-    st.rerun()
+
 
 def regerar_imagem_callback(slide_index):
     # 1. TENTA COBRAR PRIMEIRO (CUSTO DE 1 IMAGEM + 100% MARGEM)
