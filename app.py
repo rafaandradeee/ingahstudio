@@ -5,7 +5,9 @@ import zipfile
 from io import BytesIO
 import time
 import stripe
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
+
 from agents import equipe
 from config import CONFIG
 import google.genai as genai
@@ -81,7 +83,6 @@ def iniciar_checkout_stripe(user_id, email_usuario):
     except Exception as e:
         print(f"Erro ao criar sessão Stripe: {e}")
         return None
-
 
 # --- FUNÇÕES DE CALLBACK DE EDIÇÃO ---
 def reaplicar_texto_callback(slide_index):
