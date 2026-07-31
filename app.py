@@ -165,7 +165,7 @@ if st.session_state.user is None:
                         st.session_state.user = res.user
                         st.rerun()
                     except Exception as e:
-                        st.error("Erro: {e}")
+                        st.error(f"Erro: {e}")
                         
         # --- TAB DE CADASTRO ---
         with tab_cadastro:
