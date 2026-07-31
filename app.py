@@ -327,12 +327,18 @@ else:
                 val_marca = "Gerado por @EstudioIA" if is_free else st.session_state.config_user.get('marca_nome', 'EstudioIA')
                 st.session_state.config_user['marca_nome'] = st.text_input("Seu @", value=val_marca, disabled=is_free)
                 
-            with c3:
+with c3:
                 st.session_state.config_user['tam_capa'] = st.number_input("Tamanho Capa", value=st.session_state.config_user.get('tam_capa', 58), disabled=is_free)
-                cor_capa = st.color_picker("Cor Capa", "#FFFFFF", disabled=is_free)
+                cor_capa = st.color_picker("Cor Título", "#FFFFFF", disabled=is_free)
                 cor_texto = st.color_picker("Cor Texto", "#FFFFFF", disabled=is_free)
+                cor_fundo = st.color_picker("Cor Fundo (Box)", "#000000", disabled=is_free) # NOVO CONTROLE DE COR
+                
                 st.session_state.config_user['cor_capa_rgba'] = hex_to_rgba(cor_capa)
                 st.session_state.config_user['cor_texto_rgba'] = hex_to_rgba(cor_texto)
+                
+                # Aplica a opacidade na cor escolhida para o fundo
+                opacidade_atual = st.session_state.config_user.get('opacidade_fundo', 190)
+                st.session_state.config_user['cor_fundo_rgba'] = hex_to_rgba(cor_fundo, opacidade_atual)
 
         # Travas de segurança back-end
         if is_free:
