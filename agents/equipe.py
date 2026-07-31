@@ -506,9 +506,25 @@ def run_agent_3_image_creator(draft, status, output_dir, config_user=None):
         raise Exception("GEMINI_API_KEY não encontrada no .env!")
         
     client = genai.Client(api_key=api_key)
-    roteiro = draft.get('roteiro_carrossel', [])
-    qtd_slides = len(roteiro)
     
+    # --- BLINDAGEM: Garante que o roteiro seja uma lista de dicionários ---
+    roteiro = draft.get('roteiro_carrossel', [])
+    if isinstance(roteiro, dict):
+        roteiro = list(roteiro.values()) # Transforma dicionário em lista, se a IA errar
+        
+    roteiro_valido = []
+    for item in roteiro:
+        if isinstance(item, dict):
+            roteiro_valido.append(item)
+        else:
+            # Se a IA cuspir apenas um texto solto, envelopa como dicionário
+            roteiro_valido.append({"titulo": "", "texto": str(item)})
+            
+    draft['roteiro_carrossel'] = roteiro_valido
+    roteiro = roteiro_valido
+    # ----------------------------------------------------------------------
+
+    qtd_slides = len(roteiro)
     tokens_in_total = 0
     tokens_out_total = 0
     custo_a3_total = 0.0 
@@ -517,7 +533,14 @@ def run_agent_3_image_creator(draft, status, output_dir, config_user=None):
         if status:
             status.update(label=f"🎨 Agente 3: Gerando arte {index + 1} de {qtd_slides}...", state="running")
 
-        conteudo_bruto_do_slide = json.dumps(slide, ensure_ascii=False)
+        # Esconde a cópia da IA para forçar uma imagem limpa
+        slide_para_ia = slide.copy()
+        slide_para_ia.pop('titulo', None)
+        slide_para_ia.pop('texto', None)
+        slide_para_ia.pop('texto_slide', None)
+        
+        conteudo_bruto_do_slide = json.dumps(slide_para_ia, ensure_ascii=False)
+        
         prompt_descricao = (
             f"Você é um diretor de arte criando o fundo (background) de um carrossel de Instagram. "
             f"Aqui está o roteiro completo deste slide: {conteudo_bruto_do_slide}. "
@@ -525,16 +548,24 @@ def run_agent_3_image_creator(draft, status, output_dir, config_user=None):
             f"REGRA ABSOLUTA 1: NÃO escreva nenhuma letra, palavra ou número na imagem. Deixe o fundo limpo para receber tipografia. Formato centralizado."
         )
 
-        caminho_raw = os.path.join(output_dir, f"slide_{index + 1}_raw.png")
+        # Adiciona os milissegundos para forçar o navegador a atualizar a imagem na tela
+        caminho_raw = os.path.join(output_dir, f"slide_{index + 1}_{int(time.time() * 1000)}_raw.png")
 
         try:
+            # Descobre qual é a proporção escolhida no app
+            formato_desejado = config_user.get('formato_imagem', '1080 x 1080 px (Quadrado)') if config_user else '1080'
+            proporcao_ia = "3:4" if "1440" in formato_desejado else "1:1"
+
             response = client.models.generate_content(
                 model='models/gemini-3.1-flash-image',
                 contents=prompt_descricao,
-                config=types.GenerateContentConfig(response_modalities=["IMAGE"])
+                config=types.GenerateContentConfig(
+                    response_modalities=["IMAGE"],
+                    aspect_ratio=proporcao_ia
+                )
             )
             
-            # Somando tokens e custo desta imagem específica (Modelo 3.1 Flash Image)
+            # Somando tokens e custo desta imagem específica
             t_in = getattr(response.usage_metadata, 'prompt_token_count', 0) if getattr(response, 'usage_metadata', None) else 0
             t_out = getattr(response.usage_metadata, 'candidates_token_count', 0) if getattr(response, 'usage_metadata', None) else 0
             custo_img = (t_in * (0.50 / 1_000_000)) + (t_out * (60.00 / 1_000_000))
@@ -554,27 +585,17 @@ def run_agent_3_image_creator(draft, status, output_dir, config_user=None):
                 imagem_pil = Image.open(BytesIO(imagem_bytes)).convert("RGBA")
                 width, height = imagem_pil.size
                 
-                # --- LEITURA DO PLANO PREMIUM ---
-                formato_desejado = config_user.get('formato_imagem', '1080 x 1080 px (Quadrado)') if config_user else '1080'
-                
-                if '1440' in formato_desejado:
-                    target_w, target_h = 1080, 1440
-                else:
-                    target_w, target_h = 1080, 1080
-                    
-                target_ratio = target_w / target_h
+                target_ratio = 1080 / (1440 if '1440' in formato_desejado else 1080)
                 img_ratio = width / height
 
                 # --- A GUILHOTINA DINÂMICA ---
                 if img_ratio > target_ratio:
-                    # Imagem é mais larga que o necessário (Cortar as laterais)
                     new_width = int(height * target_ratio)
                     left = (width - new_width) // 2
                     top = 0
                     right = left + new_width
                     bottom = height
                 else:
-                    # Imagem é mais alta que o necessário (Cortar em cima/baixo)
                     new_height = int(width / target_ratio)
                     left = 0
                     top = (height - new_height) // 2
@@ -582,7 +603,7 @@ def run_agent_3_image_creator(draft, status, output_dir, config_user=None):
                     bottom = top + new_height
                 
                 imagem_pil = imagem_pil.crop((left, top, right, bottom))
-                imagem_pil = imagem_pil.resize((target_w, target_h), Image.Resampling.LANCZOS)
+                imagem_pil = imagem_pil.resize((1080, 1440 if '1440' in formato_desejado else 1080), Image.Resampling.LANCZOS)
                 imagem_pil.save(caminho_raw)
                 
                 slide.update({
@@ -604,6 +625,10 @@ def run_agent_3_image_creator(draft, status, output_dir, config_user=None):
     
     draft['_tokens_acumulados'] = tokens_acumulados
     draft['_custo_acumulado'] = custo_acumulado
+    
+    print(f"🪙 [AGENTE 3 - DIRETOR DE ARTE] In: {tokens_in_total} | Out: {tokens_out_total} | Custo (Pelas {qtd_slides} Imagens): US$ {custo_a3_total:.5f}")
+
+    return draft
     
     print(f"🪙 [AGENTE 3 - DIRETOR DE ARTE] In: {tokens_in_total} | Out: {tokens_out_total} | Custo (Pelas {qtd_slides} Imagens): US$ {custo_a3_total:.5f}")
 
