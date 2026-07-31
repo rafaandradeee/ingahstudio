@@ -327,7 +327,7 @@ else:
                 val_marca = "Gerado por @EstudioIA" if is_free else st.session_state.config_user.get('marca_nome', 'EstudioIA')
                 st.session_state.config_user['marca_nome'] = st.text_input("Seu @", value=val_marca, disabled=is_free)
                 
-with c3:
+            with c3:
                 st.session_state.config_user['tam_capa'] = st.number_input("Tamanho Capa", value=st.session_state.config_user.get('tam_capa', 58), disabled=is_free)
                 cor_capa = st.color_picker("Cor Título", "#FFFFFF", disabled=is_free)
                 cor_texto = st.color_picker("Cor Texto", "#FFFFFF", disabled=is_free)
