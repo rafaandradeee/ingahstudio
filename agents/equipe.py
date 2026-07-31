@@ -19,6 +19,7 @@ from agents import prompts
 from google.genai import types
 from dotenv import load_dotenv
 import random
+import streamlit as st
 
 def decodificar_json_seguro(texto: str) -> dict:
     texto_limpo = texto.strip().replace("```json", "").replace("```", "").strip()
