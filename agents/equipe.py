@@ -164,13 +164,54 @@ def aplicar_tipografia_slide(slide_dict: dict, config_user: dict = None) -> dict
         # ==============================================================
         if "Padrão" in modelo_design:
             
-            # --- MODELO PADRÃO: SLIDE 1 (CAPA) ---
+           # --- MODELO PADRÃO: SLIDE 1 (CAPA) ---
             if slide_num == 1:
                 texto_capa = "\n".join(textwrap.wrap(titulo if titulo else "ARRASTE PARA LER", width=18))
                 texto_corpo_capa = "\n".join(textwrap.wrap(texto, width=35))
                 
                 h_total = 0
                 w_max = 0
+                espaco_entre = 30 # Aumentamos o respiro entre título e texto
+                
+                # 1. Mede o tamanho exato da caixa necessária
+                if mostrar_titulo and titulo:
+                    bbox_capa = draw_overlay.multiline_textbbox((0, 0), texto_capa, font=fonte_titulo_capa, spacing=12)
+                    h_total += bbox_capa[3] - bbox_capa[1]
+                    w_max = max(w_max, bbox_capa[2] - bbox_capa[0])
+                if mostrar_texto and texto:
+                    bbox_txt = draw_overlay.multiline_textbbox((0, 0), texto_corpo_capa, font=fonte_corpo, spacing=10)
+                    if mostrar_titulo and titulo:
+                        h_total += espaco_entre
+                    h_total += bbox_txt[3] - bbox_txt[1]
+                    w_max = max(w_max, bbox_txt[2] - bbox_txt[0])
+                
+                padding_y = 50 # Mais margem em cima e embaixo
+                padding_x = 60 # Mais margem nas laterais
+                h_box = h_total + (padding_y * 2) if h_total > 0 else 0
+                w_box = w_max + (padding_x * 2) if w_max > 0 else 0
+                
+                y_box = altura - h_box - 120 # Subimos a caixa um pouco para não colar no rodapé
+                x_box = (largura - w_box) / 2
+                
+                # 2. Desenha o fundo com opacidade
+                if h_box > 0 and mostrar_fundo:
+                     draw_overlay.rounded_rectangle([x_box, y_box, x_box + w_box, y_box + h_box], radius=25, fill=cor_fundo_rgba)
+                
+                y_atual = y_box + padding_y
+                
+                # 3. Desenha os textos centralizados
+                if mostrar_titulo and titulo:
+                    bbox_capa = draw_overlay.multiline_textbbox((0, 0), texto_capa, font=fonte_titulo_capa, spacing=12)
+                    w_capa = bbox_capa[2] - bbox_capa[0]
+                    x_capa = (largura - w_capa) / 2
+                    desenhar_texto_com_sombra(draw_overlay, (x_capa, y_atual), texto_capa, fonte_titulo_capa, cor_capa, spacing=12, align="center")
+                    y_atual += (bbox_capa[3] - bbox_capa[1]) + espaco_entre
+                    
+                if mostrar_texto and texto:
+                    bbox_txt = draw_overlay.multiline_textbbox((0, 0), texto_corpo_capa, font=fonte_corpo, spacing=10)
+                    w_txt = bbox_txt[2] - bbox_txt[0]
+                    x_txt = (largura - w_txt) / 2
+                    desenhar_texto_com_sombra(draw_overlay, (x_txt, y_atual), texto_corpo_capa, fonte_corpo, cor_texto_geral, spacing=10, align="center")
                 
                 # 1. Mede o tamanho exato da caixa necessária
                 if mostrar_titulo and titulo:
@@ -320,11 +361,17 @@ def gerar_imagem_para_slide(slide_dict: dict, index_slide: int, output_dir: str,
         
     caminho_base = os.path.join(output_dir, f"slide_{slide_num}_raw.png")
     
+   formato_desejado = config_user.get('formato_imagem', '1080 x 1080 px (Quadrado)') if config_user else '1080'
+    proporcao_ia = "3:4" if "1440" in formato_desejado else "1:1"
+
     try:
         response = client.models.generate_content(
             model='models/gemini-3.1-flash-image',
             contents=prompt_descricao,
-            config=types.GenerateContentConfig(response_modalities=["IMAGE"])
+            config=types.GenerateContentConfig(
+                response_modalities=["IMAGE"],
+                aspect_ratio=proporcao_ia # Força a IA a criar no tamanho certo
+            )
         )
         
         # Log de Tokens e Custo da Regeração (Modelo de Imagem)
@@ -515,9 +562,6 @@ def run_agent_3_image_creator(draft, status, output_dir, config_user=None):
             f"Com base nesse texto, crie uma arte conceitual e profissional que represente este exato tema. "
             f"REGRA ABSOLUTA 1: NÃO escreva nenhuma letra, palavra ou número na imagem. Deixe o fundo limpo para receber tipografia. Formato centralizado."
         )
-        
-        if index == 0:
-            prompt_descricao += " REGRA ABSOLUTA 2: A imagem DEVE ter uma iluminação predominantemente ESCURA (dark background, low-key lighting, moody) para contraste."
 
         caminho_raw = os.path.join(output_dir, f"slide_{index + 1}_raw.png")
 
