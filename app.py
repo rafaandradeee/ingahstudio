@@ -5,10 +5,8 @@ import zipfile
 from io import BytesIO
 import time
 import stripe
-
 # Adiciona o diretório raiz ao path para encontrar os módulos
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
-
 from agents import equipe
 from config import CONFIG
 import google.genai as genai
